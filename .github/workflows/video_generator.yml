@@ -1,22 +1,28 @@
 name: 即创视频生成 (Jichuang Video Generation)
 
-# 当收到一个类型为 'generate-video' 的 repository_dispatch 事件时触发
 on:
+  # API 触发
   repository_dispatch:
     types: [generate-video]
-  workflow_dispatch:
   
+  # 【关键修改】添加手动触发
+  workflow_dispatch:
+    inputs:
+      Jichuang_Content:
+        description: '请输入视频生成文案 (Please enter the video copy)'
+        required: true # 确保手动触发时必须填写
+        # 您可以为手动触发设置一个默认值
+        default: '玩家用脚投票的电竞馆，装修都有这些小心机：低蓝光照明保护视力，阶梯式观赛区无视线死角。'
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
     
-    # 定义 job 的输出
     outputs:
       task_name: ${{ steps.run_script.outputs.task_name }}
 
     steps:
       - name: Checkout repository
-        # 此步骤会下载你的仓库代码，包括 run_automation.py 和 即创.json
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -30,21 +36,20 @@ jobs:
           pip install playwright openai
 
       - name: Install Playwright Browsers
-        # --with-deps 会安装所有必需的操作系统依赖
         run: playwright install --with-deps
 
       - name: Run Python script
         id: run_script
         env:
           MODELSCOPE_API_KEY: ${{ secrets.MODELSCOPE_API_KEY }}
-          # 【核心修改】从 client_payload 中读取 Jichuang_Content 变量
-          # 并将其赋值给 CUSTOM_TEXT 环境变量，供 Python 脚本使用
-          CUSTOM_TEXT: ${{ github.event.client_payload.Jichuang_Content }}
+          # 【核心修改】智能判断输入源
+          # 如果是手动触发(workflow_dispatch)，则使用 inputs.Jichuang_Content
+          # 否则 (是API触发)，则使用 client_payload.Jichuang_Content
+          CUSTOM_TEXT: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.Jichuang_Content) || github.event.client_payload.Jichuang_Content }}
           GITHUB_OUTPUT: ${{ steps.run_script.outputs.task_name }}
         run: python run_automation.py
 
       - name: Upload artifacts
-        # 无论成功或失败，都上传截图以便调试
         if: always()
         uses: actions/upload-artifact@v4
         with:
