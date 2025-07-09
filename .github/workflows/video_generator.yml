@@ -5,7 +5,7 @@ on:
   repository_dispatch:
     types: [generate-video]
   workflow_dispatch:
-  
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
@@ -16,6 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
+        # 此步骤会下载你的仓库代码，包括 run_automation.py 和 即创.json
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -32,22 +33,10 @@ jobs:
         # --with-deps 会安装所有必需的操作系统依赖
         run: playwright install --with-deps
 
-      - name: Create cookie file from secret
-        env:
-          # 从 GitHub Secrets 中读取 Base64 编码的 cookie
-          JICHUANG_COOKIES_B64: ${{ secrets.JICHUANG_COOKIES_B64 }}
-        run: |
-          if [ -z "$JICHUANG_COOKIES_B64" ]; then
-            echo "::error::Secret JICHUANG_COOKIES_B64 is not set."
-            exit 1
-          fi
-          echo "$JICHUANG_COOKIES_B64" | base64 --decode > 即创.json
-          echo "即创.json file created successfully."
-
       - name: Run Python script
         id: run_script
         env:
-          # 将 ModelScope 密钥和 API 请求中的自定义文本作为环境变量传递给脚本
+          # 我们只需要传递这两个环境变量
           MODELSCOPE_API_KEY: ${{ secrets.MODELSCOPE_API_KEY }}
           CUSTOM_TEXT: ${{ github.event.client_payload.text }}
           # GITHUB_OUTPUT 是一个特殊的文件路径，用于设置步骤的输出
@@ -62,4 +51,3 @@ jobs:
           name: generation-artifacts
           path: |
             *.png
-            即创.json
