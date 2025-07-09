@@ -4,7 +4,8 @@ name: 即创视频生成 (Jichuang Video Generation)
 on:
   repository_dispatch:
     types: [generate-video]
-
+  workflow_dispatch:
+  
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
